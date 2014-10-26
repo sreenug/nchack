@@ -1,0 +1,169 @@
+<html lang="en">
+<head>
+    <title>EMC </title>
+
+    <meta charset="UTF-8">
+
+    <style>
+	  .circle {width: 100px; height: 100px; -moz-border-radius: 50px; 
+	  	-webkit-border-radius: 50px;}
+	</style>
+	   
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/dc/1.7.0/dc.css"/>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="http://walmik.info/demos/timer.jquery/src/timer.jquery.js"></script>
+</head>
+<body>
+
+<div class="container">
+	<h2>Light Sensor Bracket Hookup Diagram</h2>
+	<div id="chart-ring-year"></div>
+	<div id="chart-ring-month"></div>
+	<div id="chart-line-hitsperday"></div>
+	<div id="dummy" style="display:none;"></div>
+	<table id="vis_table" class="span12 table table-striped"></table>
+<script type="text/javascript" src="http:////cdnjs.cloudflare.com/ajax/libs/d3/3.4.11/d3.js"></script>
+<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/crossfilter/1.3.9/crossfilter.js"></script>
+<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/dc/1.7.0/dc.js"></script>
+<script type="text/javascript">
+
+var light_data = [{"light_name":"Ambient Sensor","state":"OFF","color1":" na","color2":"na"},
+			{"light_name":"SPA SAS Port 1 Link","state":"ON","color1":"Blue","color2":null},
+			{"light_name":"SPA Fiber Channel Port 1","state":"ON","color1":"Blue","color2":null},
+			{"light_name":"SPA Ethernet Port 4 Link","state":"ON","color1":"Green","color2":null},
+			{"light_name":"SPA Ethernet Port 4 Activity","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPA SAS Port 2 Link","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPA Unsafe To Remove","state":"ON","color1":"Purple","color2":null},
+			{"light_name":"SPA Ethernet Port 3 Link","state":"ON","color1":"Green","color2":null},
+			{"light_name":"SPA Ethernet Port 3 Activity","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPA Memory Fault","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPA Power","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPA Fault","state":"1.0 Hz","color1":"blue","color2":"green"},
+			{"light_name":"SPA Ethernet Port 1 Activity","state":"ON","color1":"Green","color2":null},
+			{"light_name":"SPA Ethernet Port 2 Link","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPA Ethernet Port 2 Activity","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPA Ethernet Port 1 Link","state":"2 Hz","color1":"purple","color2":"red"},
+			{"light_name":"SPA Fiber Channel Port 2","state":"ON","color1":"Blue","color2":null},
+			{"light_name":"SPB Ethernet Port 1 Link","state":"ON","color1":"Green","color2":null},
+			{"light_name":"SPB Ethernet Port 2 Link","state":"ON","color1":"Green","color2":null},
+			{"light_name":"SPB Memory Fault","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPB Ethernet Port 1 Activity","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPB Ethernet Port 2 Activity","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPB Unsafe To Remove","state":"ON","color1":"Teal","color2":null},
+			{"light_name":"SPB Fault","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPB Power","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPB Ethernet port 4 Activity","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPB Ethernet port 3 Link","state":"OFF","color1":" ","color2":null},
+			{"light_name":"SPB Ethernet Port 3 Activity","state":"ON","color1":"Green","color2":null},
+			{"light_name":"SPB SAS Port 1 Link","state":"ON","color1":"Green","color2":null},
+			{"light_name":"SPB SAS Port 2 Link","state":"ON","color1":"Blue","color2":null},
+			{"light_name":"SPB Ethernet Port 4 Link","state":"ON","color1":"Green","color2":null},
+			{"light_name":"SPB Fiber Channel Port 1","state":"ON","color1":"Blue","color2":null},
+			{"light_name":"SPB Fiber Channel Port 2","state":"ON","color1":"Blue","color2":null}
+			];
+
+	//If on server uncomment this line and the last line..
+	$.getJSON( "get_latest_data.php", function( data ) {
+	  var light_data = [];
+	  $.each( data, function(key, val) {
+	    light_data.push(val);
+	  });
+	console.log(light_data);
+
+	var unique_data = [];
+	//var data = [];
+	
+
+
+	//Getting rid of duplicates from data..replacing with last retrieved value if duplicates are found
+	$.each(light_data, function(i, el){
+	    if($.inArray(el.light_name, unique_data) === -1) {
+	    	unique_data.push(el.light_name);
+	    	data.push(el);
+	    } else {
+	    	console.log(el.light_name);
+	    }
+	});
+
+	i = 0;
+	tr_html = "<tr class='row'>";
+	td_html = "";
+	//List of elements to add timer functions if frequency is there
+	var timer_elements = [];
+	
+	data.forEach(function(row) {
+		if(i % 6 == 0) {
+			//console.log(i);
+			td_html = td_html + "</tr><tr class='row'>";
+
+		}
+		//console.log(row.color1);
+		back_ground_color = row.color1;
+		if(row.state == "OFF"){
+			back_ground_color = '#e6e6e6';
+		}
+
+		element_name = "id_"+row.light_name;
+		//remove white spaces just to avoid some element with ID access errors
+		element_id = element_name.replace(/\s/g, "");
+		console.log(element_id);
+		td_html = td_html + "<td style='height:160px; width:200px;'><div id='"+element_id+"' class='circle' style='background:"+back_ground_color+";'></div><br><div style='font-size:13px;'>"+row.light_name+"</div></td>";
+		
+		i = i + 1;
+		
+		//for adding timers to elements
+		if(row.state != "OFF" && row.state != "ON") {
+			console.log("state",row.state);
+
+			var frequency = row.state.split(" ")[0];
+			console.log("rate", parseInt(frequency));
+			timer_elements.push({"element_id": element_id, "frequency": parseInt(frequency), 
+				"color1":row.color1, "color2": row.color2});
+		}
+		
+		
+	});
+	console.log(timer_elements);
+	tr_html = tr_html + td_html + "</tr>";
+	
+	console.log(timer_elements);
+
+	timer_elements.forEach( function(element){
+		console.log("in for each");
+		if(element.color1 != "na" && element.color2 != "na") {
+			console.log("in if", element.element_id);
+			console.log($('#'+element.element_id));
+			
+			setInterval(function() {
+			    changeColor(element);
+			}, 1000*element.frequency);
+
+
+
+			
+		}
+
+
+	});
+	$("#vis_table").append(tr_html);
+
+	function changeColor(element)  {
+		console.log("el", element);
+		$("#dummy").css('background-color',element.color1);
+		if($("#dummy").css('background-color') ===  $('#'+element.element_id).css("background-color")){
+			$('#'+element.element_id).css("background-color", element.color2);
+
+		} else {
+			$('#'+element.element_id).css("background-color", element.color1);
+		}
+		//color = $('#'+element.element_id).css("background-color");
+		//console.log(color);
+
+	}
+	});
+
+	</script>
+</div>
+</body>
+</html>
